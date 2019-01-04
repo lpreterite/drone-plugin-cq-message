@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os"
 
+	"github.com/bitly/go-simplejson"
 	"github.com/Sirupsen/logrus"
 	"github.com/urfave/cli"
 )
@@ -48,21 +49,29 @@ func main() {
 		_url.RawQuery = _query.Encode()
 
 		reqest, err := http.NewRequest("GET", _url.String(), nil)
-
-		reqest.Header.Add("cache-control", "no-cache")
-		reqest.Header.Add("Authorization", "Token "+c.String("cqToken"))
-
 		if err != nil {
 			return err
 		}
+		reqest.Header.Add("cache-control", "no-cache")
+		reqest.Header.Add("Authorization", "Token "+c.String("cqToken"))
 
 		client := &http.Client{}
 		response, err := client.Do(reqest)
 		if err != nil {
+			fmt.Println("response error")
 			return err
 		}
+		fmt.Println("response status code: %d", response.StatusCode)
 		defer response.Body.Close()
 
+		result, err := simplejson.NewFromReader(response.Body)
+		if err != nil {
+			fmt.Println("json error")
+			return err
+		}
+		status, _ := result.Get("status").String()
+		data, _ := result.Get("data").Map()
+		fmt.Println("response status: "+status, data)
 		fmt.Println("Send Message in ", _url.String())
 		return err
 	}
